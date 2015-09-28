@@ -34,10 +34,10 @@ int main(int argc, char **argv)
         return 4;   
     }
 
-    int bytesCount;
-    char buf[1024];
-    while ((bytesCount = recv(socket_desc, buf, sizeof(buf)/sizeof(buf[0]), 0)) > 0) {
-        fwrite(buf, bytesCount, 1, stdout);
+    int bytes_count;
+    char buf[20];
+    while ((bytes_count = recv(socket_desc, buf, sizeof(buf)/sizeof(buf[0]), 0)) > 0) {
+        fwrite(buf, bytes_count, 1, stdout);
     }
 
     close(socket_desc);

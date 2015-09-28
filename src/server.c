@@ -1,8 +1,23 @@
+#include <pthread.h>
+#include <unistd.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <signal.h>
 #include <stdio.h>
 #include <string.h>
+
+void * process_request(void * arg) {
+    int socket = (int) arg;
+    char buf[1024] = { 0 };
+    int bytes_count = recv(socket, buf, sizeof(buf)/sizeof(buf[0]), 0);
+    FILE *pipe = popen(buf, "r");
+
+    while (bytes_count = fread(buf, 1, sizeof(buf)/sizeof(buf[0]), pipe)) {
+        write(socket, buf, bytes_count);
+    }
+
+    close(socket);
+}
 
 int main(int argc, char **argv)
 {
@@ -35,21 +50,32 @@ int main(int argc, char **argv)
     int bytes_count;
     char buf[1024];
     FILE *pipe;
+    pthread_t thread;
     while (1) {
         memset(buf, 0, sizeof(buf)/sizeof(buf[0]));
 
         if ((new_socket = accept(socket_desc, (struct sockaddr *) &client, &socklen)) == -1) {
             continue;
         }
-        
-        bytes_count = recv(new_socket, buf, sizeof(buf)/sizeof(buf[0]), 0);
-        pipe = popen(buf, "r");
 
-        while (bytes_count = fread(buf, 1, sizeof(buf)/sizeof(buf[0]), pipe))    {
-            write(new_socket, buf, bytes_count);
+#ifdef PROCESS        
+        pid_t pid = fork();
+        if (pid == -1) {
+            puts("Error: Could not create a process!");
+            return 4;
         }
-
-        close(new_socket);
+        if (!pid) {
+            process_request((void *) new_socket);
+            _exit(0);
+        } else {
+            close(new_socket);
+        }
+#else
+        if (pthread_create(&thread, NULL, process_request, (void *) new_socket)) {
+            puts("Error: Could not create a thread!");
+            return 4;
+        }
+#endif
     }
 
     close(socket_desc);
