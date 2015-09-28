@@ -7,7 +7,7 @@
 #include <string.h>
 
 void * process_request(void * arg) {
-    int socket = (int) arg;
+    long socket = (long) arg;
     char buf[1024] = { 0 };
     int bytes_count = recv(socket, buf, sizeof(buf)/sizeof(buf[0]), 0);
     FILE *pipe = popen(buf, "r");
@@ -15,6 +15,8 @@ void * process_request(void * arg) {
     while (bytes_count = fread(buf, 1, sizeof(buf)/sizeof(buf[0]), pipe)) {
         write(socket, buf, bytes_count);
     }
+
+    pclose(pipe);
 
     close(socket);
 }
@@ -58,7 +60,7 @@ int main(int argc, char **argv)
             continue;
         }
 
-#ifdef PROCESS        
+#if PROCESS        
         pid_t pid = fork();
         if (pid == -1) {
             puts("Error: Could not create a process!");
@@ -71,7 +73,7 @@ int main(int argc, char **argv)
             close(new_socket);
         }
 #else
-        if (pthread_create(&thread, NULL, process_request, (void *) new_socket)) {
+        if (pthread_create(&thread, NULL, process_request, (void *)(long) new_socket)) {
             puts("Error: Could not create a thread!");
             return 4;
         }
